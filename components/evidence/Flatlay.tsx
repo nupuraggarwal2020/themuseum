@@ -275,6 +275,15 @@ export function Flatlay({ artifacts, renderArtifact, onOpen }: Props) {
         <FlatlayPhotoCollageFallback />
       </div>
 
+      {/* Desk-side caption — matches the FILED prototype caption
+          typography. Only shown on lg+ because that's the only place
+          the pieces are interactive. */}
+      <p className="mt-3 hidden px-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-on-dark/60 lg:block">
+        <span className="text-ink-300">●</span>&nbsp;DESK · drag and
+        resize the objects to rearrange. Your layout stays in this
+        browser.
+      </p>
+
       {/* Editorial pivot — closes the spread, opens the wall. */}
       <h3 className="t-headline mx-auto mt-20 max-w-[58ch] text-balance px-6 text-center text-ink-on-dark sm:mt-24">
         After Granola: neatly <em className="italic">filed</em>,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
 /**
@@ -9,6 +10,21 @@ import { motion, useReducedMotion } from "motion/react";
  */
 export function Hero() {
   const reduce = useReducedMotion();
+
+  /* Intake date — set on the client after mount so today's local
+     date renders without an SSR/CSR mismatch (server time zone and
+     visitor time zone can disagree across the midnight boundary).
+     The fallback dashes render on the server and during the very
+     first paint; they're identical typographic width to the date
+     so the line doesn't reflow when the real value lands. */
+  const [today, setToday] = useState<string | null>(null);
+  useEffect(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    setToday(`${yyyy} / ${mm} / ${dd}`);
+  }, []);
 
   return (
     <div
@@ -35,9 +51,8 @@ export function Hero() {
           <p className="t-lede text-ink-on-dark">
             What do you do when you&rsquo;ve got multiple threads open
             in your head, notes spewn across tools, and a tool comes
-            along that changes all that? A decade at Canva, twelve
-            notetaking systems, none of them quite stuck. This site
-            is what I learned along the way. I call it&hellip;
+            along that changes all that? This site is what I learned
+            along the way. I call it&hellip;
           </p>
         </motion.div>
 
@@ -59,7 +74,7 @@ export function Hero() {
         <p className="t-typewriter text-right text-ink-on-dark">
           ARCHIVIST: NUPUR&nbsp;AGGARWAL
           <br />
-          INTAKE DATE: 2024 / 05 / 07
+          INTAKE DATE: {today ?? "———— / —— / ——"}
         </p>
       </div>
 

@@ -15,7 +15,12 @@ export function SiteFrame() {
     <>
       <Atmosphere />
       <header
-        className="pointer-events-none fixed inset-x-0 top-0 z-40 flex items-start justify-between px-6 py-5 text-ink-700 sm:px-10"
+        className="pointer-events-none fixed inset-x-0 top-0 z-40 flex items-start justify-between px-6 py-5 text-ink-700 backdrop-blur-md sm:px-10"
+        style={{
+          backgroundColor:
+            "color-mix(in oklch, var(--color-vault) 82%, transparent)",
+          borderBottom: "1px solid color-mix(in oklch, var(--color-rule-strong) 60%, transparent)",
+        }}
         aria-label="Site frame"
       >
         <Link

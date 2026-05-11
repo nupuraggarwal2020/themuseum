@@ -68,6 +68,31 @@ const DEPTH_OPACITY_MIN = 0.7;
    together. Prevents the model from going off the rails. */
 const DEPTH_DISTANCE_CAP = 6;
 
+/* Cluster mode layout knobs. Tight 2-column grid per cluster so a
+   bundle reads as one tactile group, not a sparse drift. The
+   horizontal/vertical threshold matches the smallest canvas width
+   where three 240px columns can still sit side-by-side with
+   breathing room. */
+const CLUSTER_COLS = 2;
+const CLUSTER_GAP_X = 16;
+const CLUSTER_GAP_Y = 12;
+const CLUSTER_HORIZONTAL_MIN_WIDTH = 800;
+const CLUSTER_PILL_RESERVE = 44;
+const CLUSTER_ORDER = ["what-breaks", "small-wins", "scary-idea"] as const;
+type ClusterKey = (typeof CLUSTER_ORDER)[number];
+
+const CLUSTER_LABELS: Record<ClusterKey, string> = {
+  "what-breaks": "Where step three breaks",
+  "small-wins": "Ship the small win",
+  "scary-idea": "Recording-as-onboarding",
+};
+
+const CLUSTER_TONES: Record<ClusterKey, string> = {
+  "what-breaks": "oklch(0.78 0.16 50)",
+  "small-wins": "oklch(0.66 0.14 60)",
+  "scary-idea": "oklch(0.62 0.18 42)",
+};
+
 type MemoryShardsProps = {
   /** Optional notifier called the first time the visitor takes an action. */
   onInteract?: () => void;
@@ -103,6 +128,13 @@ export function MemoryShards({ onInteract }: MemoryShardsProps = {}) {
   const [shards, setShards] = useState<Shard[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [showClusters, setShowClusters] = useState(false);
+  /* When entering cluster mode we move every clustered shard to a
+     target position; we snapshot the prior layout here so toggling
+     cluster mode off restores the canvas exactly. Snapshots ALL
+     shards (even unclustered ones), so the restore is total. */
+  const clusterSnapshotRef = useRef<Map<ShardId, { x: number; y: number }> | null>(
+    null,
+  );
   const [activePhraseId, setActivePhraseId] = useState<string | null>(null);
   const [pendingConnect, setPendingConnect] = useState<{
     from: ShardId;
@@ -369,6 +401,192 @@ export function MemoryShards({ onInteract }: MemoryShardsProps = {}) {
 
   const cancelConnect = useCallback(() => setPendingConnect(null), []);
 
+  /* Pointer-driven connect from the + handle to another card.
+     Replaces the prior click-then-click model with a single drag
+     gesture: pointerdown on the handle, drag the rubber band over a
+     target shard, pointerup completes (or cancels if not over one).
+     The existing window-mousemove effect keeps updating the rubber-
+     band tip while pendingConnect is set, so we only need to manage
+     start, hit-test on up, and Escape/pointercancel teardown.
+
+     Keyboard activation (Enter / Space on the focused handle) does
+     NOT fire pointerdown — it falls through to the button's onClick
+     which still runs `startConnect`, preserving the two-step
+     accessible fallback. */
+  const startConnectDrag = useCallback(
+    (id: ShardId, e: ReactPointerEvent<HTMLButtonElement>) => {
+      /* Only real pointer types start the drag flow; keyboard
+         activations have pointerType "" on some browsers. Letting
+         those through to onClick keeps a11y intact. */
+      if (
+        e.pointerType !== "mouse" &&
+        e.pointerType !== "touch" &&
+        e.pointerType !== "pen"
+      ) {
+        return;
+      }
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      e.stopPropagation();
+      e.preventDefault();
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const node = e.currentTarget;
+      const pointerId = e.pointerId;
+      try {
+        node.setPointerCapture(pointerId);
+      } catch {
+        /* pointer capture can fail if the element is detached. */
+      }
+
+      const rect0 = canvas.getBoundingClientRect();
+      setPendingConnect({
+        from: id,
+        pos: { x: e.clientX - rect0.left, y: e.clientY - rect0.top },
+      });
+      onInteract?.();
+
+      const onMove = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        const rect = canvas.getBoundingClientRect();
+        setPendingConnect((prev) =>
+          prev
+            ? {
+                ...prev,
+                pos: { x: ev.clientX - rect.left, y: ev.clientY - rect.top },
+              }
+            : prev,
+        );
+      };
+
+      const detach = () => {
+        node.removeEventListener("pointermove", onMove);
+        node.removeEventListener("pointerup", onUp);
+        node.removeEventListener("pointercancel", onCancel);
+      };
+
+      const onUp = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        detach();
+        /* Find the shard under the release point. The handle itself
+           sits at the right edge of the source card, so an
+           in-place click would resolve to the source — guard with
+           an id !== id check before completing. */
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const shardEl = el?.closest("[data-shard='true']") as HTMLElement | null;
+        const targetId =
+          (shardEl?.getAttribute("data-shard-id") as ShardId | null) ?? null;
+        if (targetId && targetId !== id) {
+          addConnection(id, targetId);
+          promoteToFront(targetId);
+          setPendingConnect(null);
+        } else {
+          setPendingConnect(null);
+        }
+      };
+
+      const onCancel = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        detach();
+        setPendingConnect(null);
+      };
+
+      node.addEventListener("pointermove", onMove);
+      node.addEventListener("pointerup", onUp);
+      node.addEventListener("pointercancel", onCancel);
+    },
+    [addConnection, promoteToFront, onInteract],
+  );
+
+  /* "Suggest clusters" toggle. On enter, snapshot every shard's
+     current position, then move clustered shards into a tight 2×N
+     grid per cluster (or a vertical stack if the canvas is narrow).
+     On exit, restore from the snapshot. Unclustered shards stay
+     put either way. */
+  const toggleClusters = useCallback(() => {
+    if (showClusters) {
+      const snap = clusterSnapshotRef.current;
+      if (snap) {
+        setShards((prev) =>
+          prev.map((s) => {
+            const o = snap.get(s.id);
+            return o ? { ...s, x: o.x, y: o.y } : s;
+          }),
+        );
+      }
+      clusterSnapshotRef.current = null;
+      setShowClusters(false);
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+
+    const groups = new Map<ClusterKey, Shard[]>();
+    for (const s of shards) {
+      const c = s.phrase.cluster as ClusterKey | undefined;
+      if (!c) continue;
+      const arr = groups.get(c) ?? [];
+      arr.push(s);
+      groups.set(c, arr);
+    }
+    if (groups.size === 0) return;
+
+    const horizontal = rect.width >= CLUSTER_HORIZONTAL_MIN_WIDTH;
+    const targets = new Map<ShardId, { x: number; y: number }>();
+    CLUSTER_ORDER.forEach((key, i) => {
+      const members = groups.get(key);
+      if (!members || members.length === 0) return;
+      const rows = Math.ceil(members.length / CLUSTER_COLS);
+      const blockW =
+        members.length === 1
+          ? SHARD_W
+          : CLUSTER_COLS * SHARD_W + (CLUSTER_COLS - 1) * CLUSTER_GAP_X;
+      const blockH = rows * SHARD_H + (rows - 1) * CLUSTER_GAP_Y;
+      let centerX: number;
+      let centerY: number;
+      if (horizontal) {
+        const thirdW = rect.width / 3;
+        centerX = thirdW * (i + 0.5);
+        centerY = rect.height / 2;
+      } else {
+        centerX = rect.width / 2;
+        const thirdH = rect.height / 3;
+        centerY = thirdH * (i + 0.5);
+      }
+      const minStartX = CANVAS_MARGIN;
+      const maxStartX = Math.max(minStartX, rect.width - blockW - CANVAS_MARGIN);
+      const startX = Math.max(minStartX, Math.min(maxStartX, centerX - blockW / 2));
+      const minStartY = CANVAS_MARGIN + CLUSTER_PILL_RESERVE;
+      const maxStartY = Math.max(minStartY, rect.height - blockH - CANVAS_MARGIN);
+      const startY = Math.max(minStartY, Math.min(maxStartY, centerY - blockH / 2));
+      members.forEach((m, idx) => {
+        const col = idx % CLUSTER_COLS;
+        const row = Math.floor(idx / CLUSTER_COLS);
+        targets.set(m.id, {
+          x: startX + col * (SHARD_W + CLUSTER_GAP_X),
+          y: startY + row * (SHARD_H + CLUSTER_GAP_Y),
+        });
+      });
+    });
+    if (targets.size === 0) return;
+
+    const snap = new Map<ShardId, { x: number; y: number }>();
+    shards.forEach((s) => snap.set(s.id, { x: s.x, y: s.y }));
+    clusterSnapshotRef.current = snap;
+
+    setShards((prev) =>
+      prev.map((s) => {
+        const t = targets.get(s.id);
+        return t ? { ...s, x: t.x, y: t.y } : s;
+      }),
+    );
+    setShowClusters(true);
+    setPendingConnect(null);
+    onInteract?.();
+  }, [showClusters, shards, onInteract]);
+
   /* On-canvas shard drag.
 
      Pointer-down on a card body starts a drag using a single pointer-
@@ -492,6 +710,7 @@ export function MemoryShards({ onInteract }: MemoryShardsProps = {}) {
     setShards([]);
     setConnections([]);
     setShowClusters(false);
+    clusterSnapshotRef.current = null;
     orderRef.current = 0;
   }, []);
 
@@ -765,11 +984,11 @@ export function MemoryShards({ onInteract }: MemoryShardsProps = {}) {
         toolbar={
           <div className="flex flex-wrap items-center gap-2">
             <ToolbarButton
-              onClick={() => setShowClusters((v) => !v)}
+              onClick={toggleClusters}
               pressed={showClusters}
               disabled={shards.length === 0}
             >
-              Suggest clusters
+              {showClusters ? "Reset clusters" : "Suggest clusters"}
             </ToolbarButton>
             <ToolbarButton onClick={seed}>Seed an example</ToolbarButton>
             <ToolbarButton onClick={reset} disabled={shards.length === 0}>
@@ -799,6 +1018,7 @@ export function MemoryShards({ onInteract }: MemoryShardsProps = {}) {
             onMoveShard={moveShard}
             onRemoveShard={removeShard}
             onStartConnect={startConnect}
+            onConnectPointerDown={startConnectDrag}
             onCompleteConnect={completeConnect}
             onCancelConnect={cancelConnect}
             onCanvasDragStart={startCanvasDrag}
@@ -1107,6 +1327,10 @@ type ShardCanvasProps = {
   onMoveShard: (id: ShardId, x: number, y: number) => void;
   onRemoveShard: (id: ShardId) => void;
   onStartConnect: (id: ShardId, e: ReactMouseEvent<HTMLButtonElement>) => void;
+  onConnectPointerDown: (
+    id: ShardId,
+    e: ReactPointerEvent<HTMLButtonElement>,
+  ) => void;
   onCompleteConnect: (id: ShardId) => void;
   onCancelConnect: () => void;
   onCanvasDragStart: (
@@ -1128,6 +1352,7 @@ const ShardCanvas = forwardRef<HTMLDivElement, ShardCanvasProps>(
       onMoveShard,
       onRemoveShard,
       onStartConnect,
+      onConnectPointerDown,
       onCompleteConnect,
       onCancelConnect,
       onCanvasDragStart,
@@ -1224,11 +1449,14 @@ const ShardCanvas = forwardRef<HTMLDivElement, ShardCanvasProps>(
             onMove={onMoveShard}
             onRemove={onRemoveShard}
             onStartConnect={onStartConnect}
+            onConnectPointerDown={onConnectPointerDown}
             onCompleteConnect={onCompleteConnect}
             onCanvasDragStart={onCanvasDragStart}
             onPromote={onPromote}
           />
         ))}
+
+        {showClusters ? <ClusterSummaryPills shards={shards} /> : null}
       </div>
     );
   },
@@ -1361,6 +1589,10 @@ type ShardCardProps = {
   onMove: (id: ShardId, x: number, y: number) => void;
   onRemove: (id: ShardId) => void;
   onStartConnect: (id: ShardId, e: ReactMouseEvent<HTMLButtonElement>) => void;
+  onConnectPointerDown: (
+    id: ShardId,
+    e: ReactPointerEvent<HTMLButtonElement>,
+  ) => void;
   onCompleteConnect: (id: ShardId) => void;
   onCanvasDragStart: (
     id: ShardId,
@@ -1378,6 +1610,7 @@ const ShardCard = function ShardCardImpl({
   onMove,
   onRemove,
   onStartConnect,
+  onConnectPointerDown,
   onCompleteConnect,
   onCanvasDragStart,
   onPromote,
@@ -1466,6 +1699,7 @@ const ShardCard = function ShardCardImpl({
   return (
     <div
       data-shard="true"
+      data-shard-id={shard.id}
       role="group"
       tabIndex={0}
       onKeyDown={handleKey}
@@ -1523,11 +1757,15 @@ const ShardCard = function ShardCardImpl({
       <button
         data-connect-handle="true"
         type="button"
-        aria-label="Click here, then click another shard to draw a thread between them"
-        onPointerDown={(e) => e.stopPropagation()}
+        aria-label="Drag from here to another shard to draw a thread between them"
+        onPointerDown={(e) => onConnectPointerDown(shard.id, e)}
         onClick={(e) => onStartConnect(shard.id, e)}
         className="absolute -right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-rule bg-paper text-ink-500 opacity-0 transition-opacity duration-200 hover:text-ink-900 group-hover:opacity-100 focus-visible:opacity-100"
-        style={{ boxShadow: "var(--shadow-card)", cursor: "crosshair" }}
+        style={{
+          boxShadow: "var(--shadow-card)",
+          cursor: "crosshair",
+          touchAction: "none",
+        }}
       >
         <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
           <path
@@ -1630,5 +1868,82 @@ function ClusterGlow({ shards }: { shards: Shard[] }) {
         ))}
       </g>
     </motion.svg>
+  );
+}
+
+/* ------------------------- Cluster pills --------------------------- */
+
+/* One "Summarise · {label}" affordance per active cluster. Positions
+   itself above the cluster's bounding box, follows live shard
+   positions so dragging a clustered card keeps the pill anchored.
+   The click handler is a console.log placeholder — the affordance is
+   visible but the summary is a future hook. */
+function ClusterSummaryPills({ shards }: { shards: Shard[] }) {
+  const reduce = useReducedMotion();
+  const groups = new Map<ClusterKey, Shard[]>();
+  for (const s of shards) {
+    const c = s.phrase.cluster as ClusterKey | undefined;
+    if (!c) continue;
+    const arr = groups.get(c) ?? [];
+    arr.push(s);
+    groups.set(c, arr);
+  }
+  const entries = CLUSTER_ORDER.map((key) => {
+    const members = groups.get(key);
+    if (!members || members.length < 2) return null;
+    const xs = members.map((m) => m.x);
+    const ys = members.map((m) => m.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs) + SHARD_W;
+    const minY = Math.min(...ys);
+    return {
+      key,
+      cx: (minX + maxX) / 2,
+      top: Math.max(8, minY - 36),
+      label: CLUSTER_LABELS[key],
+      tone: CLUSTER_TONES[key],
+    };
+  }).filter((v): v is NonNullable<typeof v> => v !== null);
+
+  return (
+    <>
+      {entries.map((e) => (
+        <motion.button
+          key={e.key}
+          type="button"
+          title="Summary not yet wired up"
+          onClick={() => {
+            console.log("Summarise:", e.key);
+          }}
+          initial={reduce ? false : { opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
+          transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+          className="press absolute inline-flex items-center gap-1.5 rounded-sm bg-bone-50 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] hover:border-ink-300"
+          style={{
+            left: e.cx,
+            top: e.top,
+            transform: "translate(-50%, 0)",
+            zIndex: 8999,
+            color: "var(--color-ink-on-light, var(--color-ink-900))",
+            border: "1px solid var(--color-rule-strong, var(--color-rule))",
+            boxShadow: "var(--shadow-card)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              display: "inline-block",
+              width: 6,
+              height: 6,
+              borderRadius: 999,
+              background: e.tone,
+            }}
+          />
+          <span>Summarise · {e.label}</span>
+        </motion.button>
+      ))}
+    </>
   );
 }
