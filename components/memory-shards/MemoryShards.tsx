@@ -24,7 +24,7 @@
 
 import {
   forwardRef,
-  type KeyboardEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
@@ -1021,7 +1021,7 @@ function PhraseRow({
   onShard: () => void;
   onPointerDown: (e: ReactPointerEvent<HTMLLIElement>) => void;
 }) {
-  const handleKey = (e: KeyboardEvent<HTMLLIElement>) => {
+  const handleKey = (e: ReactKeyboardEvent<HTMLLIElement>) => {
     if ((e.key === "Enter" || e.key === " ") && !isSharded) {
       e.preventDefault();
       onShard();
@@ -1397,7 +1397,7 @@ const ShardCard = function ShardCardImpl({
     return () => cancelAnimationFrame(id);
   }, [appeared]);
 
-  const handleKey = (e: KeyboardEvent<HTMLDivElement>) => {
+  const handleKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     const step = e.shiftKey ? 32 : 8;
     if (e.key === "ArrowLeft") {
       e.preventDefault();
