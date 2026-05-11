@@ -46,7 +46,7 @@ export function Letter() {
         </motion.h2>
 
         <p className="mt-5 max-w-[42ch] font-serif text-[1.1rem] leading-[1.55] text-ink-700">
-          A small keepsake for you. Enter the info and Press develop.
+          A small keepsake for you. Enter the info and press develop.
         </p>
 
         <div className="mt-12">
@@ -95,7 +95,7 @@ export function Letter() {
               The thing I love about Granola is{" "}
               <span className="italic">
                 it lets me be present without missing any information
-                and enabled countless follow ups and a shared way of
+                and enabled countless follow-ups and a shared way of
                 documenting
               </span>
               . It is the first software I have used that respects the order
@@ -105,7 +105,7 @@ export function Letter() {
             <p>
               I built this museum as my application because I wanted to
               show you how I think. I may not be a developer, but I am a
-              builder with a creative directior&rsquo;s vision, and I
+              builder with a creative director&rsquo;s vision, and I
               wanted to challenge myself to build some interactions in a
               way a CV cannot. The first,{" "}
               <em className="italic">Scroll Back</em>, is for the moment a

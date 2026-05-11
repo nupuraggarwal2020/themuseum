@@ -268,7 +268,7 @@ export function DeviceArtifact() {
               <p className="font-sans text-[10px] leading-[1.35] text-ink-900">
                 In the AI world, references are everything. If you&rsquo;ve
                 got good references, you can make it look beautiful and make
-                it work exactly you like.
+                it work exactly as you like.
                 <span className="ml-1 font-mono text-[8px] uppercase tracking-[0.12em] text-ink-700">
                   Just now
                 </span>
@@ -556,7 +556,7 @@ export function TornArtifact() {
             references are everything.
           </span>{" "}
           If you&rsquo;ve got good references, you can make it look beautiful
-          and make it work exactly you like.&rdquo;
+          and make it work exactly as you like.&rdquo;
         </p>
         <p className="t-typewriter-sm mt-3 text-ink-700">
           TORN FROM THOUGHTS PANEL · JUST NOW

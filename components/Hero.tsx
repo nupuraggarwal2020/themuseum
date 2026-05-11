@@ -50,7 +50,7 @@ export function Hero() {
         >
           <p className="t-lede text-ink-on-dark">
             What do you do when you&rsquo;ve got multiple threads open
-            in your head, notes spewn across tools, and a tool comes
+            in your head, notes strewn across tools, and a tool comes
             along that changes all that? This site is what I learned
             along the way. I call it&hellip;
           </p>

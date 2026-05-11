@@ -63,7 +63,7 @@ Room labels (index · label):
 
 #### 1.2.1 Lede paragraph
 
-What do you do when you've got multiple threads open in your head, notes spewn across tools and a tool comes along that changes all that? To the lovely folks at Granola. I built this prototype to show you my appreciation and share some cool ideas with this vibe coded site. I call it -
+What do you do when you've got multiple threads open in your head, notes strewn across tools and a tool comes along that changes all that? To the lovely folks at Granola. I built this prototype to show you my appreciation and share some cool ideas with this vibe coded site. I call it -
 
 `components/Hero.tsx:35`
 
@@ -353,7 +353,7 @@ ARCHIVE
 Wide thoughts panel below *(top-right link: Add)*:
 
 **Thoughts**
-In the AI world, references are everything. If you've got good references, you can make it look beautiful and make it work exactly you like. *Just now*
+In the AI world, references are everything. If you've got good references, you can make it look beautiful and make it work exactly as you like. *Just now*
 I hate documentation *Just now*
 
 `components/evidence/ArtifactRenderers.tsx:191`
@@ -470,7 +470,7 @@ Metadata:
 
 Body content (Torn paper, jagged edges):
 
-"In the AI world, **references are everything.** If you've got good references, you can make it look beautiful and make it work exactly you like."
+"In the AI world, **references are everything.** If you've got good references, you can make it look beautiful and make it work exactly as you like."
 
 (The phrase "references are everything." is rendered as a non-italic medium weight, with a cherry underline.)
 
@@ -912,7 +912,7 @@ CASE No. 04    STATUS: FOR THE RECORD
 
 #### 1.7.3 Intro paragraph above the IntakeCard
 
-A small keepsake for you. Enter the info and Press develop.
+A small keepsake for you. Enter the info and press develop.
 
 `components/Letter.tsx:48`
 
@@ -1001,9 +1001,9 @@ Dear *{{ REPLACE: Sam }}*,
 
 I have, on my desk right now, many notebooks with three pages of decisive thinking and four hundred pages of notes I took during the meetings and after. This has stayed almost constant for a decade, across many different systems.
 
-The thing I love about Granola is *it lets me be present without missing any information and enabled countless follow ups and a shared way of documenting*. It is the first software I have used that respects the order in which thinking actually happens, which is: live first, write later, and only the parts that turned out to matter.
+The thing I love about Granola is *it lets me be present without missing any information and enabled countless follow-ups and a shared way of documenting*. It is the first software I have used that respects the order in which thinking actually happens, which is: live first, write later, and only the parts that turned out to matter.
 
-I built this museum as my application because I wanted to show you how I think. I may not be a developer, but I am a builder with a creative directior's vision, and I wanted to challenge myself to build some interactions in a way a CV cannot. The first, *Scroll Back*, is for the moment a sentence lands four seconds after the meaning does. The second, *Memory Shards*, is for the brainstorm whose shape I knew but whose notes I never could reconstruct. Both are very rough, but maybe belong in a product like yours. I would like to help you build them.
+I built this museum as my application because I wanted to show you how I think. I may not be a developer, but I am a builder with a creative director's vision, and I wanted to challenge myself to build some interactions in a way a CV cannot. The first, *Scroll Back*, is for the moment a sentence lands four seconds after the meaning does. The second, *Memory Shards*, is for the brainstorm whose shape I knew but whose notes I never could reconstruct. Both are very rough, but maybe belong in a product like yours. I would like to help you build them.
 
 If any of this struck a chord, or any of the choices made you wince, I would love to hear which.
 
