@@ -1,0 +1,932 @@
+@import "tailwindcss";
+
+/* =====================================================================
+   Design tokens — A Museum of Notetaking · Dark-vault edition
+   ----------------------------------------------------------------
+   The original warm-bone palette is preserved as a *scope* (.surface-lit)
+   so anything that lives inside a lit drawer, a paper card, or the
+   Vision-Pro detail surface keeps its dark-on-warm legibility. The
+   default page palette is now a deep matte vault with a single halated
+   amber bloom (ember). Token *names* have not changed; their values
+   have. The /system page keeps reading the same CSS variables.
+   ===================================================================== */
+
+@theme {
+  /* ---- Vault canvas ---- */
+  --color-vault: oklch(0.13 0.01 60);            /* deep matte charcoal */
+  --color-vault-deep: oklch(0.08 0.005 60);      /* shadow well */
+  --color-paper-lit: oklch(0.92 0.02 80);        /* warm white inside drawers */
+
+  /* Vault with a teal undertone — used ONLY by Hero.HorizonGradient as the
+     "sky" stop, to echo the moody #101c1c → #050707 base from the night-
+     drive reference. Site-wide chrome stays on the warm vault token. */
+  --color-vault-teal: oklch(0.18 0.014 200);
+
+  /* ---- Repainted neutrals (keep names; retarget to vault) ---- */
+  --color-paper: oklch(0.92 0.02 80);            /* paper-lit alias */
+  --color-bone-50: oklch(0.13 0.01 60);          /* page canvas (now vault) */
+  --color-bone-100: oklch(0.16 0.012 60);
+  --color-bone-200: oklch(0.20 0.012 60);
+  --color-bone-300: oklch(0.26 0.012 60);
+
+  /* ---- Ink: light by default, flipped inside .surface-lit ---- */
+  --color-ink-900: oklch(0.96 0 0);              /* primary ink-on-dark · #f5f5f5 */
+  --color-ink-800: oklch(0.86 0.02 78);
+  --color-ink-700: oklch(0.78 0.015 75);         /* body text on dark */
+  --color-ink-600: oklch(0.68 0.012 70);
+  --color-ink-500: oklch(0.55 0.01 60);          /* muted on dark */
+  --color-ink-400: oklch(0.45 0.01 60);
+  --color-ink-300: oklch(0.32 0.012 60);         /* hairline / disabled */
+  --color-ink-200: oklch(0.22 0.012 60);
+
+  /* ---- Cherry → Ember (single accent across the vault) ---- */
+  --color-cherry-700: oklch(0.62 0.18 45);       /* ember */
+  --color-cherry-600: oklch(0.66 0.17 47);
+  --color-cherry-300: oklch(0.78 0.16 50);       /* ember-glow */
+  --color-cherry-100: oklch(0.30 0.10 45);       /* dark ember chip wash */
+
+  /* Ember mirrored to its own names so future code can read it cleanly. */
+  --color-ember: oklch(0.62 0.18 45);
+  --color-ember-glow: oklch(0.78 0.16 50);
+
+  /* ---- Restoration tones — ember bleeds back during prototypes ---- */
+  --color-restore-300: oklch(0.50 0.10 50);
+  --color-restore-500: oklch(0.62 0.16 48);
+
+  /* Sticky-note accents (only meaningful inside .surface-lit drawers) */
+  --color-keep-yellow: oklch(0.42 0.06 90);
+  --color-keep-edge: oklch(0.50 0.05 80);
+
+  /* Hairlines on the vault */
+  --color-rule: oklch(0.30 0.01 60);
+  --color-rule-strong: oklch(0.40 0.01 60);
+
+  /* Manila folder — used only by DetailCard. Warm tan kraft cardstock
+     with a darker rim for borders, a brighter top highlight rim, and a
+     deep-sienna ink for the engraved tab label. The cooler stationery
+     gray is reserved for a future variant (index-card divider). */
+  --color-manila: oklch(0.84 0.04 75);
+  --color-manila-edge: oklch(0.66 0.045 65);
+  --color-manila-rim: oklch(0.93 0.03 80);
+  --color-manila-ink: oklch(0.30 0.05 60);
+  --color-manila-paper: oklch(0.96 0.012 82);
+  --color-stationery-gray: oklch(0.82 0.005 250);
+
+  /* Convenience aliases */
+  --color-background: var(--color-vault);
+  --color-foreground: var(--color-ink-900);
+  --color-muted: var(--color-ink-500);
+  --color-accent: var(--color-ember);
+
+  /* Semantic ink, used directly via utilities by the vault chrome */
+  --color-ink-on-dark: oklch(0.96 0 0);          /* primary white on vault · #f5f5f5 */
+  --color-ink-on-light: oklch(0.18 0.01 80);
+
+  /* Atmospheric — knobs the Atmosphere component reads to tune the
+     night-drive aesthetic. All can be overridden per-scope. */
+  --grain-opacity: 0.32;        /* coarse crushed-grain layer — cjimmy bloom */
+  --grain-fine-opacity: 0.20;   /* fine-grain screen-blend layer — film noise */
+  --herd-opacity: 0.55;         /* warm "cattle" constellation — heat bodies */
+  --mist-opacity: 0.42;         /* warm haze band sitting above the herd */
+  --vignette-strength: 0.55;    /* corner darkness — was 0.32 */
+  --bloom-intensity: 1;         /* dialed down inside quiet contexts */
+
+  /* ---- Typography ----
+     Active: Kobe 1.1 (VJ-Type) is the single typographic family across
+     the whole site. Six variants (Regular / RegularOblique / Bold /
+     BoldOblique / Black / BlackOblique) carry the contrast that the
+     previous multi-family stack carried by typeface — weight and obliquity
+     instead of typeface, used intentionally per context:
+
+       Display caps + display + headline → 900 (Black)
+       em inside display                  → 900 italic (BlackOblique)
+       Typewriter chrome (eyebrow/meta)   → 700 (Bold), tighter tracking
+       Body / lede                        → 400 (Regular)
+       Hand-feel input on IntakeCard      → 400 italic (RegularOblique)
+
+     Kobe has no native mono or handwritten variant; the typewriter
+     classes already set tighter tracking + smaller size for chrome
+     character, and the IntakeCard input uses RegularOblique so it still
+     reads as written rather than typed.
+
+     Previous mapping (immediate revert target):
+       --font-display/-serif/-sans/-mono/-hand: var(--font-category), …
+
+     Older revert target (the four-family stack):
+       --font-serif: var(--font-newsreader), "Newsreader", ..., serif;
+       --font-sans:  var(--font-inter), "Inter", ..., sans-serif;
+       --font-mono:  var(--font-jetbrains), "JetBrains Mono", ..., monospace;
+       --font-hand:  var(--font-caveat), "Caveat", ..., cursive;
+       --font-display: var(--font-newsreader), ..., serif;
+
+     Both Category and the four Google fonts remain registered in
+     app/layout.tsx, so reverting is a CSS-only edit. */
+  --font-serif: var(--font-kobe), "Helvetica Neue", system-ui, sans-serif;
+  --font-sans: var(--font-kobe), "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: var(--font-kobe), "Helvetica Neue", system-ui, sans-serif;
+  --font-hand: var(--font-kobe), "Helvetica Neue", system-ui, sans-serif;
+  --font-display: var(--font-kobe), "Helvetica Neue", system-ui, sans-serif;
+
+  /* ---- Motion (unchanged) ---- */
+  --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-snap: cubic-bezier(0.32, 0.08, 0.24, 1);
+  --ease-glide: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --duration-quick: 200ms;
+  --duration-base: 350ms;
+  --duration-slow: 600ms;
+  --duration-restore: 800ms;
+
+  /* ---- Radii (unchanged) ---- */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+
+  /* ---- Elevation: now reads against vault. ---- */
+  --shadow-card:
+    0 1px 0 oklch(0.30 0.01 60 / 0.6),
+    0 22px 44px -22px oklch(0 0 0 / 0.55);
+  --shadow-lift:
+    0 1px 0 oklch(0.30 0.01 60 / 0.6),
+    0 36px 80px -28px oklch(0 0 0 / 0.7);
+  --shadow-pin:
+    0 6px 14px -8px oklch(0 0 0 / 0.7),
+    0 2px 4px -2px oklch(0 0 0 / 0.55);
+  --shadow-drawer:
+    0 30px 60px -28px oklch(0 0 0 / 0.85),
+    0 10px 26px -16px oklch(0 0 0 / 0.6);
+}
+
+/* =====================================================================
+   surface-lit — restore the warm-bone palette inside lit drawers and
+   the detail card. The forensic prototypes (Scroll Back, Memory Shards)
+   sit inside FiledFrame which applies this scope so the inner exhibit
+   reads like museum paper under glass on a dark wall. Token *names*
+   are preserved so the existing prototype components keep working.
+   ===================================================================== */
+
+.surface-lit {
+  --color-paper: oklch(0.96 0.012 80);
+  --color-paper-lit: oklch(0.96 0.012 80);
+  --color-bone-50: oklch(0.96 0.01 85);
+  --color-bone-100: oklch(0.945 0.012 80);
+  --color-bone-200: oklch(0.91 0.014 75);
+  --color-bone-300: oklch(0.86 0.014 70);
+
+  --color-ink-900: oklch(0.18 0.01 80);
+  --color-ink-800: oklch(0.24 0.01 80);
+  --color-ink-700: oklch(0.32 0.01 80);
+  --color-ink-600: oklch(0.40 0.01 80);
+  --color-ink-500: oklch(0.50 0.01 80);
+  --color-ink-400: oklch(0.62 0.01 80);
+  --color-ink-300: oklch(0.74 0.012 78);
+  --color-ink-200: oklch(0.84 0.012 78);
+
+  /* Cherry stays as ember even on lit paper (the brief calls for the
+     restoration mechanic to bleed warmer ember rather than colder
+     cherry red). */
+  --color-cherry-700: oklch(0.58 0.19 42);
+  --color-cherry-600: oklch(0.62 0.18 45);
+  --color-cherry-300: oklch(0.78 0.13 38);
+  --color-cherry-100: oklch(0.94 0.04 60);
+
+  --color-keep-yellow: oklch(0.93 0.07 95);
+  --color-keep-edge: oklch(0.84 0.08 90);
+
+  --color-rule: oklch(0.84 0.012 80);
+  --color-rule-strong: oklch(0.70 0.012 70);
+
+  /* Ink-on-light/-on-dark inside a lit surface still mean the same
+     thing — a dark ink for use against the lit paper. */
+  --color-ink-on-dark: oklch(0.92 0.02 80);
+  --color-ink-on-light: oklch(0.18 0.01 80);
+
+  /* Elevation against lit paper instead of vault */
+  --shadow-card:
+    0 1px 0 oklch(0.86 0.014 80 / 0.5),
+    0 8px 22px -14px oklch(0.18 0.01 80 / 0.18);
+  --shadow-lift:
+    0 1px 0 oklch(0.86 0.014 80 / 0.5),
+    0 24px 56px -28px oklch(0.18 0.01 80 / 0.28);
+  --shadow-pin:
+    0 6px 14px -8px oklch(0.18 0.01 80 / 0.32),
+    0 2px 4px -2px oklch(0.18 0.01 80 / 0.18);
+}
+
+/* =====================================================================
+   proto-flat — flat-line mode for the forensic prototypes. The
+   FiledFrame wrapper adds this class alongside .surface-lit so every
+   descendant (cards, buttons, shards, saved bookmarks, the spatial
+   canvas, the connect-handle ring, etc.) renders without drop shadows.
+   Each prototype already paints its own 1px `border-rule` hairline,
+   so the visible structure is preserved — we just strip the depth
+   cues. Works identically in light and dark mode because the rule
+   tokens themselves are mode-aware.
+   ===================================================================== */
+
+.proto-flat {
+  --shadow-card: none;
+  --shadow-lift: none;
+  --shadow-pin: none;
+}
+
+/* =====================================================================
+   Light-mode token overrides — "exhibit hall at midday".
+   --------------------------------------------------------------------
+   The dark vault @theme above is the source of truth and the default
+   render. This block (plus the prefers-color-scheme fallback below) is
+   a runtime override applied when the user has opted into light mode
+   via <ThemeScript /> / <ThemeToggle />. It re-points the same token
+   names at warm-paper values so every component that already flows
+   through tokens flips automatically — no per-component rewrite.
+
+   Atmosphere knobs are dialed down: the warm-cattle herd, mist band,
+   and crushed bloom are the night-drive's nighttime weather. In the
+   lit hall they'd read as smudges, so opacity is set to 0 (and the
+   crushed-bloom layer itself is hidden via .atmosphere-grainy-base
+   below — opacity:0 isn't enough because the contrast/brightness
+   filter still inflates a faint warm glow).
+   ===================================================================== */
+:root[data-theme="light"] {
+  --color-vault: oklch(0.96 0 0);                /* page background · #f5f5f5 */
+  --color-vault-deep: oklch(0.88 0.02 78);
+  --color-vault-teal: oklch(0.94 0.018 90);
+  --color-paper-lit: oklch(0.99 0.008 85);
+  --color-paper: oklch(0.99 0.008 85);
+
+  --color-bone-50: oklch(0.96 0 0);              /* bg alias · #f5f5f5 */
+  --color-bone-100: oklch(0.945 0.012 80);
+  --color-bone-200: oklch(0.91 0.014 75);
+  --color-bone-300: oklch(0.86 0.014 70);
+
+  --color-ink-900: oklch(0.18 0.01 80);
+  --color-ink-800: oklch(0.24 0.01 80);
+  --color-ink-700: oklch(0.32 0.01 80);
+  --color-ink-600: oklch(0.40 0.01 80);
+  --color-ink-500: oklch(0.50 0.01 80);
+  --color-ink-400: oklch(0.62 0.01 80);
+  --color-ink-300: oklch(0.74 0.012 78);
+  --color-ink-200: oklch(0.84 0.012 78);
+
+  --color-ink-on-dark: oklch(0.18 0.01 80);
+  --color-ink-on-light: oklch(0.18 0.01 80);
+
+  --color-ember: oklch(0.58 0.19 42);
+  --color-ember-glow: oklch(0.72 0.17 45);
+  --color-cherry-700: oklch(0.58 0.19 42);
+  --color-cherry-600: oklch(0.62 0.18 45);
+  --color-cherry-300: oklch(0.74 0.14 40);
+  --color-cherry-100: oklch(0.94 0.04 60);
+
+  --color-rule: oklch(0.84 0.012 80);
+  --color-rule-strong: oklch(0.70 0.012 70);
+
+  --color-keep-yellow: oklch(0.93 0.07 95);
+  --color-keep-edge: oklch(0.84 0.08 90);
+
+  --shadow-card:
+    0 1px 0 oklch(0.86 0.014 80 / 0.5),
+    0 8px 22px -14px oklch(0.18 0.01 80 / 0.18);
+  --shadow-lift:
+    0 1px 0 oklch(0.86 0.014 80 / 0.5),
+    0 24px 56px -28px oklch(0.18 0.01 80 / 0.28);
+  --shadow-pin:
+    0 6px 14px -8px oklch(0.18 0.01 80 / 0.32),
+    0 2px 4px -2px oklch(0.18 0.01 80 / 0.18);
+  --shadow-drawer:
+    0 30px 60px -28px oklch(0.18 0.01 80 / 0.18),
+    0 10px 26px -16px oklch(0.18 0.01 80 / 0.12);
+
+  --grain-opacity: 0.08;
+  --grain-fine-opacity: 0.10;
+  --herd-opacity: 0;
+  --mist-opacity: 0;
+  --vignette-strength: 0.18;
+  --bloom-intensity: 0;
+
+  color-scheme: light;
+}
+
+/* System-preference fallback. When the user has not made an explicit
+   choice (data-theme attribute is absent) we honour their OS-level
+   light-mode preference. Plain CSS variables can't be aliased in bulk,
+   so we duplicate the rule list here — keep this in sync with the
+   :root[data-theme="light"] block above. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --color-vault: oklch(0.96 0 0);              /* page background · #f5f5f5 */
+    --color-vault-deep: oklch(0.88 0.02 78);
+    --color-vault-teal: oklch(0.94 0.018 90);
+    --color-paper-lit: oklch(0.99 0.008 85);
+    --color-paper: oklch(0.99 0.008 85);
+
+    --color-bone-50: oklch(0.96 0 0);            /* bg alias · #f5f5f5 */
+    --color-bone-100: oklch(0.945 0.012 80);
+    --color-bone-200: oklch(0.91 0.014 75);
+    --color-bone-300: oklch(0.86 0.014 70);
+
+    --color-ink-900: oklch(0.18 0.01 80);
+    --color-ink-800: oklch(0.24 0.01 80);
+    --color-ink-700: oklch(0.32 0.01 80);
+    --color-ink-600: oklch(0.40 0.01 80);
+    --color-ink-500: oklch(0.50 0.01 80);
+    --color-ink-400: oklch(0.62 0.01 80);
+    --color-ink-300: oklch(0.74 0.012 78);
+    --color-ink-200: oklch(0.84 0.012 78);
+
+    --color-ink-on-dark: oklch(0.18 0.01 80);
+    --color-ink-on-light: oklch(0.18 0.01 80);
+
+    --color-ember: oklch(0.58 0.19 42);
+    --color-ember-glow: oklch(0.72 0.17 45);
+    --color-cherry-700: oklch(0.58 0.19 42);
+    --color-cherry-600: oklch(0.62 0.18 45);
+    --color-cherry-300: oklch(0.74 0.14 40);
+    --color-cherry-100: oklch(0.94 0.04 60);
+
+    --color-rule: oklch(0.84 0.012 80);
+    --color-rule-strong: oklch(0.70 0.012 70);
+
+    --color-keep-yellow: oklch(0.93 0.07 95);
+    --color-keep-edge: oklch(0.84 0.08 90);
+
+    --shadow-card:
+      0 1px 0 oklch(0.86 0.014 80 / 0.5),
+      0 8px 22px -14px oklch(0.18 0.01 80 / 0.18);
+    --shadow-lift:
+      0 1px 0 oklch(0.86 0.014 80 / 0.5),
+      0 24px 56px -28px oklch(0.18 0.01 80 / 0.28);
+    --shadow-pin:
+      0 6px 14px -8px oklch(0.18 0.01 80 / 0.32),
+      0 2px 4px -2px oklch(0.18 0.01 80 / 0.18);
+    --shadow-drawer:
+      0 30px 60px -28px oklch(0.18 0.01 80 / 0.18),
+      0 10px 26px -16px oklch(0.18 0.01 80 / 0.12);
+
+    --grain-opacity: 0.08;
+    --grain-fine-opacity: 0.10;
+    --herd-opacity: 0;
+    --mist-opacity: 0;
+    --vignette-strength: 0.18;
+    --bloom-intensity: 0;
+
+    color-scheme: light;
+  }
+}
+
+/* =====================================================================
+   Quiet ambience — locally damp the bloom field for surfaces that need
+   a calmer context (the IntakeCard, the DetailCard, etc.). The
+   <Atmosphere /> lives in <SiteFrame /> (a sibling of <main />), so a
+   CSS custom property set inside a content subtree won't reach the
+   atmosphere directly. We use :has() to bubble the intent up to <body>
+   (and therefore down to the atmosphere) whenever a `.bloom-quiet` node
+   exists in the tree. Modern browsers; safe for our matrix.
+   ===================================================================== */
+body:has(.bloom-quiet-active) {
+  --bloom-intensity: 0.6;
+}
+
+/* Local opt-in for components that explicitly want the page to relax
+   while they are mounted. Compose with `bloom-quiet-active` when you
+   want the dim to apply to the whole page. */
+.bloom-quiet {
+  --bloom-intensity: 0.6;
+}
+
+/* Light mode pins bloom-quiet to zero — the lit hall has no bloom to
+   damp, and the global rule above would otherwise re-introduce 0.6 on
+   any page that mounts a .bloom-quiet-active node (IntakeCard,
+   DetailCard). Specificity beats `body:has(.bloom-quiet-active)`. */
+:root[data-theme="light"] body:has(.bloom-quiet-active) {
+  --bloom-intensity: 0;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) body:has(.bloom-quiet-active) {
+    --bloom-intensity: 0;
+  }
+}
+
+/* The crushed-bloom layer hardcodes ember + vault stops in its
+   gradient and is then inflated by contrast(170%) brightness(1000%).
+   At opacity:0 the filter still leaks a faint warm wash, so we yank
+   the layer entirely in light mode rather than rely on opacity. The
+   herd, mist, and vignette layers are token-driven and fade cleanly.
+   Keep these selectors paired with the light-token blocks above. */
+:root[data-theme="light"] .atmosphere-grainy-base {
+  display: none;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .atmosphere-grainy-base {
+    display: none;
+  }
+}
+
+/* =====================================================================
+   Hero · HorizonGradient
+   ----------------------------------------------------------------
+   Dark mode: a vertical "sky → vault → transparent middle → vault-deep
+   anchor" composition that frames the Atmosphere's ember herd. The
+   intentional transparent middle band lets the herd punch through the
+   horizon line.
+   Light mode: flat var(--color-vault) — there is no herd to reveal in
+   the lit hall, and the gradient otherwise reads as a smudge against
+   the neutral #f5f5f5 page.
+   ===================================================================== */
+.horizon-gradient {
+  background: linear-gradient(
+    180deg,
+    var(--color-vault-teal) 0%,
+    color-mix(in oklch, var(--color-vault-teal) 35%, var(--color-vault)) 18%,
+    var(--color-vault) 32%,
+    var(--color-vault) 55%,
+    color-mix(in oklch, var(--color-vault) 100%, transparent 0%) 58%,
+    transparent 65%,
+    transparent 85%,
+    color-mix(in oklch, var(--color-vault-deep) 100%, transparent 30%) 94%,
+    var(--color-vault-deep) 100%
+  );
+}
+:root[data-theme="light"] .horizon-gradient {
+  background: var(--color-vault);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .horizon-gradient {
+    background: var(--color-vault);
+  }
+}
+
+/* =====================================================================
+   Base
+   ===================================================================== */
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-vault);
+  color: var(--color-ink-on-dark);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
+}
+
+body {
+  background: var(--color-vault);
+  color: var(--color-ink-on-dark);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.6;
+  letter-spacing: -0.005em;
+  min-height: 100dvh;
+  position: relative;
+}
+
+/* Selection — small ember wash. */
+::selection {
+  background: oklch(0.62 0.18 45 / 0.32);
+  color: var(--color-ink-on-dark);
+}
+.surface-lit ::selection {
+  background: oklch(0.62 0.18 45 / 0.22);
+  color: var(--color-ink-on-light);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+  font-feature-settings: "kern", "liga", "calt", "ss01";
+}
+.font-sans {
+  font-family: var(--font-sans);
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+.font-hand {
+  font-family: var(--font-hand);
+}
+
+/* =====================================================================
+   Type primitives — unchanged grammar; colour now flows from tokens
+   ===================================================================== */
+
+/* Display, headline, and the caps version all carry the room titles —
+   Kobe Black (900) gives them the editorial weight the previous
+   four-family stack carried via a heavier display serif. If a specific
+   room reads too heavy, the consumer can dial it back at the call site
+   (e.g. font-weight: 700 on a single h2). */
+.t-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2.75rem, 6vw + 1rem, 5.75rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.t-headline {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2rem, 3.6vw + 0.5rem, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.018em;
+}
+
+.t-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 1.8vw + 0.5rem, 2.1rem);
+  line-height: 1.18;
+  letter-spacing: -0.012em;
+}
+
+.t-display-caps {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(3rem, 11vw, 12rem);
+  line-height: 0.95;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+}
+
+/* `em` inside a display heading is rendered in BlackOblique. Next picks
+   up the matching variant from the registered array because we've
+   declared italic = oblique for both 700 and 900 weights. */
+.t-display em,
+.t-display-caps em,
+.t-headline em {
+  font-weight: 900;
+  font-style: italic;
+}
+
+/* Typewriter chrome — the eyebrow / metadata / file-strip rails. Kobe
+   has no monospace variant; we lean on Bold (700) + tight tracking so
+   the chrome reads with proper weight against the dark vault, instead
+   of looking like body text. */
+.t-typewriter {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-700);
+}
+
+.t-typewriter-sm {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-500);
+}
+
+.t-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-600);
+}
+
+.t-lede {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(1.15rem, 0.9vw + 0.85rem, 1.4rem);
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  color: var(--color-ink-700);
+}
+
+.t-body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--color-ink-700);
+}
+
+.t-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-500);
+  text-transform: uppercase;
+}
+
+/* Hand-feel — Kobe has no handwritten variant, so we use RegularOblique
+   (400 italic) on input fields. Preserves the "writing not typing" cue
+   without a true script face. */
+.t-hand {
+  font-family: var(--font-hand);
+  font-weight: 400;
+  font-style: italic;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  color: var(--color-ink-800);
+}
+
+/* =====================================================================
+   Utilities
+   ===================================================================== */
+
+.measure {
+  max-width: 38rem;
+}
+.measure-wide {
+  max-width: 52rem;
+}
+
+.rule {
+  border-color: var(--color-rule);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* Focus rings — ember, narrow, visible against vault and against paper. */
+:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+.press {
+  transition:
+    transform var(--duration-quick) var(--ease-snap),
+    background-color var(--duration-quick) var(--ease-settle),
+    color var(--duration-quick) var(--ease-settle);
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+.hairline {
+  height: 1px;
+  background: var(--color-rule);
+  width: 100%;
+}
+
+/* =====================================================================
+   Paper textures — pure CSS, no images. Live inside .surface-lit
+   ===================================================================== */
+
+.tex-paper {
+  background-color: var(--color-paper);
+}
+
+.tex-keep {
+  background:
+    linear-gradient(
+      180deg,
+      oklch(0.98 0.025 95) 0%,
+      oklch(0.96 0.04 90) 100%
+    );
+  border-color: oklch(0.85 0.06 90);
+}
+
+.tex-vellum {
+  background:
+    linear-gradient(
+      180deg,
+      oklch(0.985 0.008 85) 0%,
+      oklch(0.965 0.012 80) 100%
+    );
+}
+
+.tex-graph {
+  background-color: var(--color-paper);
+  background-image:
+    linear-gradient(to right, oklch(0.78 0.02 230 / 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.78 0.02 230 / 0.18) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.tex-rule {
+  background-color: var(--color-paper);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 25px,
+    oklch(0.7 0.04 230 / 0.32) 26px,
+    oklch(0.7 0.04 230 / 0.32) 27px
+  );
+}
+
+.tex-perforated {
+  background:
+    radial-gradient(circle at 0 50%, transparent 4px, var(--color-paper) 4px)
+      0 0 / 100% 14px repeat-y;
+}
+
+.tex-cassette {
+  background:
+    linear-gradient(
+      180deg,
+      oklch(0.96 0.012 80) 0%,
+      oklch(0.86 0.015 75) 50%,
+      oklch(0.92 0.013 78) 100%
+    );
+}
+
+/* =====================================================================
+   Drawer-wall palette · dark defaults.
+
+   The DrawerWall + Drawer components used to hardcode their oklch colors
+   inline. They now read every face / border / lip / handle / inset color
+   from this token set so the wall can be retoned per theme without
+   touching the components. Interactions, GSAP choreography, and z-state
+   are untouched — only colours flow through these variables.
+
+   Light-mode overrides live next to the other light-mode token blocks
+   (see `:root[data-theme="light"]` and the `@media (prefers-color-scheme:
+   light)` block earlier in this file). Keep them in sync.
+   ===================================================================== */
+:root {
+  --drawer-wall-bg-inner:        oklch(0.16 0.012 60);
+  --drawer-wall-bg-outer:        oklch(0.10 0.008 60);
+  --drawer-wall-pool:            oklch(0.78 0.16 50 / 0.18);
+
+  --drawer-face-top:             oklch(0.22 0.008 60);
+  --drawer-face-mid:             oklch(0.18 0.008 60);
+  --drawer-face-bot:             oklch(0.15 0.008 60);
+  --drawer-border:               oklch(0.30 0.008 60);
+  --drawer-edge-highlight:       oklch(0.36 0.01 65 / 0.50);
+  --drawer-edge-highlight-open:  oklch(0.40 0.012 70 / 0.55);
+  --drawer-edge-shadow:          oklch(0 0 0 / 0.55);
+  --drawer-edge-shadow-open:     oklch(0 0 0 / 0.45);
+  --drawer-edge-deep-open:       oklch(0.10 0.005 60 / 0.60);
+  --drawer-lip:                  oklch(0.42 0.012 70 / 0.70);
+
+  --drawer-handle-bright:        oklch(0.18 0.005 60);
+  --drawer-handle-mid:           oklch(0.10 0.005 60);
+  --drawer-handle-dim:           oklch(0.20 0.008 60);
+  --drawer-handle-edge-light:    oklch(0.50 0.012 70 / 0.40);
+  --drawer-handle-edge-dark:     oklch(0 0 0 / 0.60);
+
+  --drawer-marker-shadow:        0 1px 0 oklch(0 0 0 / 0.55);
+}
+
+/* Light-mode retone of the drawer wall — same geometry, neutral
+   warm-paper palette so the cabinet reads as bone / pale-wood instead
+   of dark steel. */
+:root[data-theme="light"] {
+  --drawer-wall-bg-inner:        oklch(0.93 0.008 80);
+  --drawer-wall-bg-outer:        oklch(0.86 0.010 78);
+  --drawer-wall-pool:            oklch(0.85 0.05 70 / 0.10);
+
+  --drawer-face-top:             oklch(0.94 0.008 82);
+  --drawer-face-mid:             oklch(0.90 0.009 80);
+  --drawer-face-bot:             oklch(0.85 0.010 78);
+  --drawer-border:               oklch(0.74 0.010 75);
+  --drawer-edge-highlight:       oklch(1 0 0 / 0.60);
+  --drawer-edge-highlight-open:  oklch(1 0 0 / 0.75);
+  --drawer-edge-shadow:          oklch(0.50 0.010 70 / 0.15);
+  --drawer-edge-shadow-open:     oklch(0.50 0.010 70 / 0.12);
+  --drawer-edge-deep-open:       oklch(0.78 0.010 75 / 0.50);
+  --drawer-lip:                  oklch(0.74 0.010 75 / 0.70);
+
+  --drawer-handle-bright:        oklch(0.88 0.010 80);
+  --drawer-handle-mid:           oklch(0.74 0.012 75);
+  --drawer-handle-dim:           oklch(0.90 0.010 80);
+  --drawer-handle-edge-light:    oklch(1 0 0 / 0.70);
+  --drawer-handle-edge-dark:     oklch(0.55 0.010 75 / 0.30);
+
+  --drawer-marker-shadow:        0 1px 0 oklch(1 0 0 / 0.70);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --drawer-wall-bg-inner:        oklch(0.93 0.008 80);
+    --drawer-wall-bg-outer:        oklch(0.86 0.010 78);
+    --drawer-wall-pool:            oklch(0.85 0.05 70 / 0.10);
+
+    --drawer-face-top:             oklch(0.94 0.008 82);
+    --drawer-face-mid:             oklch(0.90 0.009 80);
+    --drawer-face-bot:             oklch(0.85 0.010 78);
+    --drawer-border:               oklch(0.74 0.010 75);
+    --drawer-edge-highlight:       oklch(1 0 0 / 0.60);
+    --drawer-edge-highlight-open:  oklch(1 0 0 / 0.75);
+    --drawer-edge-shadow:          oklch(0.50 0.010 70 / 0.15);
+    --drawer-edge-shadow-open:     oklch(0.50 0.010 70 / 0.12);
+    --drawer-edge-deep-open:       oklch(0.78 0.010 75 / 0.50);
+    --drawer-lip:                  oklch(0.74 0.010 75 / 0.70);
+
+    --drawer-handle-bright:        oklch(0.88 0.010 80);
+    --drawer-handle-mid:           oklch(0.74 0.012 75);
+    --drawer-handle-dim:           oklch(0.90 0.010 80);
+    --drawer-handle-edge-light:    oklch(1 0 0 / 0.70);
+    --drawer-handle-edge-dark:     oklch(0.55 0.010 75 / 0.30);
+
+    --drawer-marker-shadow:        0 1px 0 oklch(1 0 0 / 0.70);
+  }
+}
+
+/* Steel drawer face — used by the Drawer component. Colours flow
+   through the --drawer-face-* tokens so the gradient retones per theme
+   without touching the component. */
+.tex-drawer-face {
+  background:
+    linear-gradient(
+      180deg,
+      var(--drawer-face-top) 0%,
+      var(--drawer-face-mid) 50%,
+      var(--drawer-face-bot) 100%
+    );
+}
+
+/* =====================================================================
+   Color-returns mechanic for the prototypes — unchanged behaviour.
+   ===================================================================== */
+
+.filed {
+  filter: saturate(0) contrast(0.97) brightness(0.99);
+  transition:
+    filter var(--duration-restore) var(--ease-settle);
+}
+.restored {
+  filter: saturate(1) contrast(1) brightness(1);
+  transition:
+    filter var(--duration-restore) var(--ease-settle);
+}
+
+@keyframes caret-blink {
+  0%, 60% { opacity: 1; }
+  61%, 100% { opacity: 0; }
+}
+
+/* Ember pulse used by the SiteFrame dot and the cherry chip. */
+@keyframes cherry-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+/* =====================================================================
+   Atmosphere — bloom keyframes used by <Atmosphere />. The grain layer
+   is a static SVG noise; only the bloom drifts. Paused under
+   prefers-reduced-motion.
+   ===================================================================== */
+
+@keyframes vault-bloom-a {
+  0%   { transform: translate3d(-8vw, -4vh, 0) scale(1);    opacity: 0.95; }
+  50%  { transform: translate3d( 6vw,  6vh, 0) scale(1.18); opacity: 1;    }
+  100% { transform: translate3d(-8vw, -4vh, 0) scale(1);    opacity: 0.95; }
+}
+
+@keyframes vault-bloom-b {
+  0%   { transform: translate3d( 6vw,  4vh, 0) scale(1.10); opacity: 1;    }
+  50%  { transform: translate3d(-5vw, -6vh, 0) scale(0.95); opacity: 0.9;  }
+  100% { transform: translate3d( 6vw,  4vh, 0) scale(1.10); opacity: 1;    }
+}
+
+@keyframes vault-bloom-c {
+  0%   { transform: translate3d( 0vw,  2vh, 0) scale(1);    opacity: 0.85; }
+  50%  { transform: translate3d(-3vw, -8vh, 0) scale(1.22); opacity: 1;    }
+  100% { transform: translate3d( 0vw,  2vh, 0) scale(1);    opacity: 0.85; }
+}
+
+/* =====================================================================
+   Reduced motion: keep opacity & color, drop transforms
+   ===================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reduced-motion-hide {
+    display: none !important;
+  }
+  .filed,
+  .restored {
+    filter: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reduced-motion-only {
+    display: none !important;
+  }
+}
