@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Caveat, Inter, JetBrains_Mono, Newsreader } from "next/font/google";
 import localFont from "next/font/local";
+import { Analytics } from "@vercel/analytics/next";
 
 import { ThemeScript } from "@/components/ThemeScript";
 import "./globals.css";
@@ -183,6 +184,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         {children}
+        <Analytics />
       </body>
     </html>
   );
